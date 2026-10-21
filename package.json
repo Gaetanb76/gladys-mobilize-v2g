@@ -8,7 +8,7 @@
   "author": "g.brissot.1@wanadoo.fr",
   "scripts": {
     "start": "node src/index.js",
-    "test": "node --test test/",
+    "test": "node --test",
     "fake-powerbox": "node tools/fake-powerbox.js"
   },
   "dependencies": {
