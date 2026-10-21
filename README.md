@@ -1,5 +1,7 @@
 # gladys-mobilize-v2g
 
+![cover](cover.jpg)
+
 External integration for **Gladys Assistant** for the **Mobilize Power** V2G offer (Renault Group cars with a **Mobilize Powerbox Verso**): energy charged and sent back to the grid, V2G hours, charging cost, V2G Hour bonus, subscription and balance per day, month and year. End-user guide: `docs/fr.md` / `docs/en.md`.
 
 ```

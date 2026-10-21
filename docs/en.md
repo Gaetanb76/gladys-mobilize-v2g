@@ -1,5 +1,7 @@
 # Mobilize Power V2G for Gladys Assistant
 
+![Mobilize Power V2G in Gladys](../cover.jpg)
+
 Follow in Gladys the charges and the energy sent back by your car on a **Mobilize Powerbox Verso** with the **Mobilize Power** offer: charging cost, V2G hours gain, subscription and balance, per day, month and year.
 
 ## Requirements

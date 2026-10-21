@@ -1,5 +1,7 @@
 # Mobilize Power V2G pour Gladys Assistant
 
+![Mobilize Power V2G dans Gladys](../cover.jpg)
+
 Suivez dans Gladys les recharges et les renvois d'énergie de votre voiture sur une **borne Mobilize Powerbox Verso**, avec l'offre **Mobilize Power** : coût de la recharge, gain des heures V2G, abonnement et bilan, par jour, par mois et par année.
 
 ## Ce qu'il faut
