@@ -6,8 +6,8 @@
     "en": "Mobilize Powerbox Verso: charges, energy sent back, V2G hours, cost, V2G bonus, balance",
     "fr": "Borne Powerbox Verso : recharges, énergie renvoyée, heures V2G, coût, bonus V2G, bilan"
   },
-  "version": "0.1.0",
-  "docker_image": "ghcr.io/gaetanb76/gladys-mobilize-v2g:0.1.0",
+  "version": "0.1.1",
+  "docker_image": "ghcr.io/gaetanb76/gladys-mobilize-v2g:0.1.1",
   "gladys_version": ">=5.1.0",
   "categories": [
     "energy"
@@ -37,9 +37,27 @@
           },
           "default": "month",
           "options": [
-            { "value": "day", "label": { "en": "Today", "fr": "Aujourd'hui" } },
-            { "value": "month", "label": { "en": "This month", "fr": "Ce mois" } },
-            { "value": "year", "label": { "en": "This year", "fr": "Cette année" } }
+            {
+              "value": "day",
+              "label": {
+                "en": "Today",
+                "fr": "Aujourd'hui"
+              }
+            },
+            {
+              "value": "month",
+              "label": {
+                "en": "This month",
+                "fr": "Ce mois"
+              }
+            },
+            {
+              "value": "year",
+              "label": {
+                "en": "This year",
+                "fr": "Cette année"
+              }
+            }
           ]
         }
       ],
@@ -197,15 +215,69 @@
       },
       "default": "9",
       "options": [
-        { "value": "3", "label": { "en": "3 kVA", "fr": "3 kVA" } },
-        { "value": "6", "label": { "en": "6 kVA", "fr": "6 kVA" } },
-        { "value": "9", "label": { "en": "9 kVA", "fr": "9 kVA" } },
-        { "value": "12", "label": { "en": "12 kVA", "fr": "12 kVA" } },
-        { "value": "15", "label": { "en": "15 kVA", "fr": "15 kVA" } },
-        { "value": "18", "label": { "en": "18 kVA", "fr": "18 kVA" } },
-        { "value": "24", "label": { "en": "24 kVA", "fr": "24 kVA" } },
-        { "value": "30", "label": { "en": "30 kVA", "fr": "30 kVA" } },
-        { "value": "36", "label": { "en": "36 kVA", "fr": "36 kVA" } }
+        {
+          "value": "3",
+          "label": {
+            "en": "3 kVA",
+            "fr": "3 kVA"
+          }
+        },
+        {
+          "value": "6",
+          "label": {
+            "en": "6 kVA",
+            "fr": "6 kVA"
+          }
+        },
+        {
+          "value": "9",
+          "label": {
+            "en": "9 kVA",
+            "fr": "9 kVA"
+          }
+        },
+        {
+          "value": "12",
+          "label": {
+            "en": "12 kVA",
+            "fr": "12 kVA"
+          }
+        },
+        {
+          "value": "15",
+          "label": {
+            "en": "15 kVA",
+            "fr": "15 kVA"
+          }
+        },
+        {
+          "value": "18",
+          "label": {
+            "en": "18 kVA",
+            "fr": "18 kVA"
+          }
+        },
+        {
+          "value": "24",
+          "label": {
+            "en": "24 kVA",
+            "fr": "24 kVA"
+          }
+        },
+        {
+          "value": "30",
+          "label": {
+            "en": "30 kVA",
+            "fr": "30 kVA"
+          }
+        },
+        {
+          "value": "36",
+          "label": {
+            "en": "36 kVA",
+            "fr": "36 kVA"
+          }
+        }
       ]
     },
     {
