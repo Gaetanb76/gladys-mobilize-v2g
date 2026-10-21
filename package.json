@@ -1,0 +1,21 @@
+{
+  "name": "gladys-mobilize-v2g",
+  "version": "0.1.0",
+  "description": "Gladys Assistant external integration for the Mobilize Power V2G offer: charges and grid returns of a Mobilize Powerbox Verso, cost of charging, V2G Hours bonus and subscription.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "author": "g.brissot.1@wanadoo.fr",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/",
+    "fake-powerbox": "node tools/fake-powerbox.js"
+  },
+  "dependencies": {
+    "@gladysassistant/integration-sdk": "^0.15.0",
+    "unpdf": "1.8.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

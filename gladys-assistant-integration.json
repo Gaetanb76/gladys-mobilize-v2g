@@ -1,0 +1,270 @@
+{
+  "manifest_version": 1,
+  "type": "device",
+  "name": "Mobilize Power V2G",
+  "description": {
+    "en": "Mobilize Powerbox Verso: charges, energy sent back, V2G hours, cost, V2G bonus, balance",
+    "fr": "Borne Powerbox Verso : recharges, énergie renvoyée, heures V2G, coût, bonus V2G, bilan"
+  },
+  "version": "0.1.0",
+  "docker_image": "ghcr.io/gaetanb76/gladys-mobilize-v2g:0.1.0",
+  "gladys_version": ">=5.1.0",
+  "categories": [
+    "energy"
+  ],
+  "transports": [
+    "local"
+  ],
+  "widgets": [
+    {
+      "key": "v2g_balance",
+      "label": {
+        "en": "V2G balance",
+        "fr": "Bilan V2G"
+      },
+      "description": {
+        "en": "Charging cost, V2G bonus, subscription and balance of the day, the month or the year.",
+        "fr": "Coût de recharge, bonus V2G, abonnement et bilan du jour, du mois ou de l'année."
+      },
+      "icon": "battery-charging",
+      "settings": [
+        {
+          "key": "period",
+          "type": "select",
+          "label": {
+            "en": "Period",
+            "fr": "Période"
+          },
+          "default": "month",
+          "options": [
+            { "value": "day", "label": { "en": "Today", "fr": "Aujourd'hui" } },
+            { "value": "month", "label": { "en": "This month", "fr": "Ce mois" } },
+            { "value": "year", "label": { "en": "This year", "fr": "Cette année" } }
+          ]
+        }
+      ],
+      "action_timeout_seconds": 15
+    }
+  ],
+  "actions": [
+    {
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection to the Powerbox",
+        "fr": "Tester la connexion à la borne"
+      },
+      "timeout_seconds": 60
+    },
+    {
+      "key": "refresh_tariffs",
+      "label": {
+        "en": "Read the Mobilize tariff grid now",
+        "fr": "Lire la grille tarifaire Mobilize maintenant"
+      },
+      "timeout_seconds": 60
+    },
+    {
+      "key": "official_hours",
+      "label": {
+        "en": "Enter the official V2G hours of a month",
+        "fr": "Saisir les heures V2G officielles d'un mois"
+      },
+      "timeout_seconds": 15,
+      "fields": [
+        {
+          "key": "month",
+          "type": "string",
+          "label": {
+            "en": "Month (YYYY-MM, empty = this month; this month or the previous one)",
+            "fr": "Mois (AAAA-MM, vide = ce mois ; ce mois ou le précédent)"
+          },
+          "placeholder": {
+            "en": "2026-10",
+            "fr": "2026-10"
+          }
+        },
+        {
+          "key": "hours",
+          "type": "number",
+          "min": 0,
+          "max": 744,
+          "label": {
+            "en": "V2G hours (Mobilize app or invoice)",
+            "fr": "Heures V2G (appli Mobilize ou facture)"
+          }
+        },
+        {
+          "key": "clear",
+          "type": "boolean",
+          "default": false,
+          "label": {
+            "en": "Back to the estimate",
+            "fr": "Revenir à l'estimation"
+          }
+        }
+      ]
+    }
+  ],
+  "config_schema": [
+    {
+      "key": "setup_info",
+      "type": "section",
+      "label": {
+        "en": "Your Mobilize Powerbox Verso",
+        "fr": "Votre borne Mobilize Powerbox Verso"
+      },
+      "description": {
+        "en": "The integration reads the borne on your local network, read-only: it never changes its settings and does not interfere with Mobilize Power. The user and password are those of the installer account, printed on the label of the borne. Give the borne a fixed IP address in your router.",
+        "fr": "L'intégration lit la borne sur votre réseau local, en lecture seule : elle ne modifie jamais ses réglages et ne gêne pas Mobilize Power. L'utilisateur et le mot de passe sont ceux du compte installateur, imprimés sur l'étiquette de la borne. Donnez à la borne une adresse IP fixe dans votre box."
+      },
+      "links": [
+        {
+          "url": "https://github.com/Gaetanb76/gladys-mobilize-v2g#readme",
+          "label": {
+            "en": "Documentation",
+            "fr": "Documentation"
+          }
+        }
+      ]
+    },
+    {
+      "key": "powerbox_host",
+      "type": "string",
+      "label": {
+        "en": "Powerbox IP address",
+        "fr": "Adresse IP de la borne"
+      },
+      "placeholder": {
+        "en": "e.g. 192.168.1.50",
+        "fr": "ex. 192.168.1.50"
+      }
+    },
+    {
+      "key": "powerbox_username",
+      "type": "string",
+      "label": {
+        "en": "Powerbox user",
+        "fr": "Utilisateur de la borne"
+      },
+      "default": "installer"
+    },
+    {
+      "key": "powerbox_password",
+      "type": "secret",
+      "label": {
+        "en": "Powerbox password (installer account)",
+        "fr": "Mot de passe de la borne (compte installateur)"
+      }
+    },
+    {
+      "key": "poll_seconds",
+      "type": "number",
+      "label": {
+        "en": "Read the borne every (seconds)",
+        "fr": "Lire la borne toutes les (secondes)"
+      },
+      "default": 30,
+      "min": 15,
+      "max": 300
+    },
+    {
+      "key": "tariffs_info",
+      "type": "section",
+      "label": {
+        "en": "Tariffs (TTC)",
+        "fr": "Tarifs (TTC)"
+      },
+      "description": {
+        "en": "By default the tariffs come from the grid published on mobilize-v2g.fr, read once a day. A value you enter below always wins over the grid; leave it empty to follow the grid. The V2G gain is the V2G hours times the V2G Hour rate. The V2G hours are estimated from the time the car is plugged in: enter the official figure of a month from the widget or below.",
+        "fr": "Par défaut, les tarifs viennent de la grille publiée sur mobilize-v2g.fr, lue une fois par jour. Une valeur saisie ci-dessous l'emporte toujours sur la grille ; laissez vide pour suivre la grille. Le gain V2G est le nombre d'heures V2G multiplié par le tarif V2G Hour. Les heures V2G sont estimées d'après le temps où la voiture est branchée : saisissez le chiffre officiel d'un mois depuis le widget ou ci-dessous."
+      }
+    },
+    {
+      "key": "auto_tariffs",
+      "type": "boolean",
+      "label": {
+        "en": "Read the tariff grid on mobilize-v2g.fr",
+        "fr": "Lire la grille tarifaire sur mobilize-v2g.fr"
+      },
+      "default": true
+    },
+    {
+      "key": "subscribed_power",
+      "type": "select",
+      "label": {
+        "en": "Subscribed power",
+        "fr": "Puissance souscrite"
+      },
+      "default": "9",
+      "options": [
+        { "value": "3", "label": { "en": "3 kVA", "fr": "3 kVA" } },
+        { "value": "6", "label": { "en": "6 kVA", "fr": "6 kVA" } },
+        { "value": "9", "label": { "en": "9 kVA", "fr": "9 kVA" } },
+        { "value": "12", "label": { "en": "12 kVA", "fr": "12 kVA" } },
+        { "value": "15", "label": { "en": "15 kVA", "fr": "15 kVA" } },
+        { "value": "18", "label": { "en": "18 kVA", "fr": "18 kVA" } },
+        { "value": "24", "label": { "en": "24 kVA", "fr": "24 kVA" } },
+        { "value": "30", "label": { "en": "30 kVA", "fr": "30 kVA" } },
+        { "value": "36", "label": { "en": "36 kVA", "fr": "36 kVA" } }
+      ]
+    },
+    {
+      "key": "price_kwh",
+      "type": "number",
+      "required": false,
+      "label": {
+        "en": "Price per kWh (€, empty = grid)",
+        "fr": "Prix du kWh (€, vide = grille)"
+      },
+      "placeholder": {
+        "en": "0.1823",
+        "fr": "0,1823"
+      }
+    },
+    {
+      "key": "v2g_hour_rate",
+      "type": "number",
+      "required": false,
+      "label": {
+        "en": "V2G Hour rate (€ per hour, empty = grid)",
+        "fr": "Tarif V2G Hour (€ par heure, vide = grille)"
+      },
+      "placeholder": {
+        "en": "0.1076",
+        "fr": "0,1076"
+      }
+    },
+    {
+      "key": "subscription_annual",
+      "type": "number",
+      "required": false,
+      "label": {
+        "en": "Annual subscription (€, empty = grid for your power)",
+        "fr": "Abonnement annuel (€, vide = grille selon votre puissance)"
+      }
+    },
+    {
+      "key": "include_subscription",
+      "type": "boolean",
+      "label": {
+        "en": "Count the subscription in the balance",
+        "fr": "Compter l'abonnement dans le bilan"
+      },
+      "default": true
+    },
+    {
+      "key": "injected_buyback",
+      "type": "number",
+      "required": false,
+      "label": {
+        "en": "Buyback of the energy sent back (€/kWh, 0 = none)",
+        "fr": "Rachat de l'énergie renvoyée (€/kWh, 0 = aucun)"
+      },
+      "description": {
+        "en": "The Mobilize information sheet says the energy sent back is bought at the selling price; the V2G hours are the main gain. Leave 0 unless your invoice shows such a credit.",
+        "fr": "La fiche d'information Mobilize indique que l'énergie renvoyée est rachetée au prix de vente ; le gain principal reste les heures V2G. Laissez 0 sauf si votre facture montre ce crédit."
+      },
+      "default": 0
+    }
+  ]
+}

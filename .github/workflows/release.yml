@@ -1,0 +1,103 @@
+name: Release
+
+# One-click release: bumps package.json + the manifest's version and
+# docker_image, tags the repo, builds a multi-arch image, and publishes
+# it to ghcr.io as :X.Y.Z and :latest. Run this from the Actions tab.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version increment"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run the tests
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+
+      - name: Compute lowercase image owner
+        id: owner
+        run: echo "name=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump package.json version
+        id: bump
+        run: |
+          NEW_VERSION=$(npm version ${{ github.event.inputs.bump }} --no-git-tag-version)
+          NEW_VERSION="${NEW_VERSION#v}"
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Update manifest
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = 'gladys-assistant-integration.json';
+            const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const version = '${{ steps.bump.outputs.version }}';
+            manifest.version = version;
+            manifest.docker_image = manifest.docker_image.replace(/:[^:]+$/, ':' + version);
+            if (manifest.containers) {
+              for (const c of manifest.containers) {
+                if (c.docker_image && c.docker_image.includes('gladys-mobilize-v2g')) {
+                  c.docker_image = c.docker_image.replace(/:[^:]+$/, ':' + version);
+                }
+              }
+            }
+            fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');
+          "
+
+      - name: Commit, tag and push
+        run: |
+          git add package.json gladys-assistant-integration.json
+          git commit -m "chore: release v${{ steps.bump.outputs.version }}"
+          git tag "v${{ steps.bump.outputs.version }}"
+          git push origin HEAD --tags
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ steps.owner.outputs.name }}/gladys-mobilize-v2g:${{ steps.bump.outputs.version }}
+            ghcr.io/${{ steps.owner.outputs.name }}/gladys-mobilize-v2g:latest
