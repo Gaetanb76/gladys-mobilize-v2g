@@ -6,8 +6,8 @@
     "en": "Mobilize Powerbox Verso: charges, energy sent back, V2G hours, cost, V2G bonus, balance",
     "fr": "Borne Powerbox Verso : recharges, énergie renvoyée, heures V2G, coût, bonus V2G, bilan"
   },
-  "version": "0.1.1",
-  "docker_image": "ghcr.io/gaetanb76/gladys-mobilize-v2g:0.1.1",
+  "version": "0.2.0",
+  "docker_image": "ghcr.io/gaetanb76/gladys-mobilize-v2g:0.2.0",
   "gladys_version": ">=5.1.0",
   "categories": [
     "energy"

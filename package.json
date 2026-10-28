@@ -1,6 +1,6 @@
 {
   "name": "gladys-mobilize-v2g",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Gladys Assistant external integration for the Mobilize Power V2G offer: charges and grid returns of a Mobilize Powerbox Verso, cost of charging, V2G Hours bonus and subscription.",
   "type": "module",
   "private": true,
