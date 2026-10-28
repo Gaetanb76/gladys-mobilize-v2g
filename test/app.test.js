@@ -145,3 +145,38 @@ test("the record survives a restart", async (t) => {
   const grid = JSON.parse(await fs.readFile(path.join(s.dataDir, "tariff-grid.json"), "utf8"));
   assert.equal(grid.grid.label, "Septembre 2026");
 });
+
+test("a cable left in the borne without a car counts no V2G hour", async (t) => {
+  const s = await setup(t);
+  s.fake.setState({ plugged: false, cablePlugged: true });
+  for (let i = 0; i < 5; i++) {
+    s.advance(60_000);
+    await s.app.pollOnce();
+  }
+  assert.equal(s.state("plugged"), 0);
+  assert.equal(s.state("day_v2g_hours"), 0);
+});
+
+test("without the socket state, the energies still count but no hour does", async (t) => {
+  const s = await setup(t);
+  s.fake.setState({ plugged: true, statusAvailable: false });
+  for (let i = 0; i < 3; i++) {
+    s.advance(60_000);
+    s.fake.addEnergy({ chargedWh: 500 });
+    await s.app.pollOnce();
+  }
+  assert.equal(s.state("day_charged"), 1.5);
+  assert.equal(s.state("day_v2g_hours"), 0);
+  assert.equal(s.gladys.fake.connectionStatus.connected, true, "the borne itself answers");
+});
+
+test("no kWh feature makes Gladys derive consumption and cost features", async (t) => {
+  const { gladys } = await setup(t);
+  await gladys.fake.scanRequest();
+  const [device] = gladys.fake.discoveredDevices;
+  const derived = device.features.filter(
+    (f) => (f.category === "energy-sensor" && ["energy", "index", "daily-consumption", "thirty-minutes-consumption"].includes(f.type)) ||
+      (f.category === "switch" && f.type === "energy"),
+  );
+  assert.deepEqual(derived, []);
+});

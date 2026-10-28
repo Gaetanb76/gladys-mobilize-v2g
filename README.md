@@ -31,7 +31,8 @@ In Gladys' developer mode, set the Powerbox address to `http://<your machine>:84
 
 Validate before release: `npx github:GladysAssistant/integration-store .`
 
-## To check on a real Powerbox Verso
+## Notes from a real Powerbox Verso
 
-- The "car plugged in" signal: the `Connected` flag of the `EVPLCCom-Virtual-Meter` meter is the current guess. The **Test the connection** button of the integration lists every meter and value.
-- The sign of `ActivePower_W` while sending energy back.
+- "Car plugged in" is the IEC 61851 control pilot of the socket (`/status/chargingmodule` `basic.CP`, else `/status/custominfo` socket `state`): B, C or D. The `Connected` flag of the `EVPLCCom-Virtual-Meter` meter stays `true` with no car, and a cable left in the T2S socket reads `CableState: "Plugged"`: neither is used. The **Test the connection** button shows the pilot, the cable and the meters.
+- The kWh features are not energy-sensor `energy`/`index` features: Gladys would derive a `(consumption)` and a `(cost)` feature from each.
+- Still to check: the sign of `ActivePower_W` while sending energy back.

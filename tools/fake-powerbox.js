@@ -26,9 +26,11 @@ const meter = (Model, connected, values) => ({
 });
 
 export function startFakePowerbox({ port = 0, password = "test", username = "installer" } = {}) {
-  const state = { plugged: false, powerW: 0, chargedWs: 1_000 * 3600 * 1000, injectedWs: 0, sessionWs: 0 };
+  // cablePlugged: the cable stays in the T2S socket without any car (the session
+  // meter then still says "Connected", as on a real Verso)
+  const state = { plugged: false, cablePlugged: true, statusAvailable: true, powerW: 0, chargedWs: 1_000 * 3600 * 1000, injectedWs: 0, sessionWs: 0 };
   const tokens = new Set();
-  const calls = { auth: 0, meters: 0, configs: 0 };
+  const calls = { auth: 0, meters: 0, configs: 0, status: 0 };
   let failNext = 0; // answer HTTP 503 to the next n requests (the real borne does)
 
   const server = http.createServer((req, res) => {
@@ -70,7 +72,7 @@ export function startFakePowerbox({ port = 0, password = "test", username = "ins
       if (req.method === "GET" && req.url === "/v1.0/meters") {
         calls.meters++;
         send(200, [
-          meter("EVPLCCom-Virtual-Meter", state.plugged, {
+          meter("EVPLCCom-Virtual-Meter", true, {
             Current_mA: Math.round((Math.abs(state.powerW) / 230) * 1000),
             Voltage_mV: 230_000,
             ActivePower_W: state.powerW,
@@ -86,6 +88,31 @@ export function startFakePowerbox({ port = 0, password = "test", username = "ins
           meter("TiC", true, { Current_PhaseA_mA: 4_000, ApparentPower_VA: 920 }),
         ]);
         return;
+      }
+      if (req.method === "GET" && req.url.startsWith("/v1.0/status/")) {
+        calls.status++;
+        if (!state.statusAvailable) {
+          send(404, { error: "not found" });
+          return;
+        }
+        // pilot: A = no car, B = car connected, C = car connected and charging (or V2G)
+        const pilot = !state.plugged ? "A1" : state.powerW !== 0 ? "C2" : "B2";
+        if (req.url === "/v1.0/status/chargingmodule") {
+          send(200, { basic: { CP: pilot, PP: state.cablePlugged ? "32A" : "NoCable" }, states: { Operational: "Operative" } });
+          return;
+        }
+        if (req.url === "/v1.0/status/custominfo") {
+          send(200, {
+            ActiveSocket: "M3",
+            M3: {
+              state: pilot.charAt(0),
+              CableState: state.cablePlugged ? "Plugged" : "Unplugged",
+              ChargingState: state.powerW !== 0 ? "Charging" : "NoCharging",
+              SocketLock: state.cablePlugged ? "Locked" : "Unlocked",
+            },
+          });
+          return;
+        }
       }
       if (req.method === "GET" && req.url === "/v1.0/configs") {
         calls.configs++;

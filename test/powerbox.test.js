@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createPowerboxClient, parseMeters, describeMeters, apiBaseUrl } from "../src/powerbox.js";
+import { createPowerboxClient, parseMeters, parseStatus, describeMeters, apiBaseUrl } from "../src/powerbox.js";
 import { startFakePowerbox } from "../tools/fake-powerbox.js";
 
 test("base URL: bare address is HTTPS, a simulator URL is kept", () => {
@@ -19,7 +19,7 @@ test("logs in, reads and parses the meters", async (t) => {
   const reading = parseMeters(await client.readMeters());
   assert.equal(reading.chargedWh, 1_000_000 + 1500);
   assert.equal(reading.injectedWh, 250);
-  assert.equal(reading.plugged, true);
+  assert.equal(parseStatus(await client.readStatus()).vehicleConnected, true);
   assert.equal(reading.powerW, 7400);
   assert.equal(reading.sessionWh, 1750);
   assert.equal(fake.calls.auth, 1);
@@ -61,20 +61,31 @@ test("a busy borne (503) and an unreachable one are errors, not crashes", async 
   t.diagnostic("closed borne rejected as expected");
 });
 
-test("an unplugged car: no session power, plugged false", () => {
+test("a session meter that is not connected: no session power", () => {
   const reading = parseMeters([
     { Model: "EVPLCCom-Virtual-Meter", Connected: "false", Values: [{ Name: "ActivePower_W", Value: 12 }] },
     { Model: "Power Board Meter", Connected: "true", Values: [{ Name: "ActiveEnergy_Ws", Value: "36000" }] },
   ]);
-  assert.deepEqual(reading, { chargedWh: 10, injectedWh: null, powerW: 0, sessionWh: null, plugged: false });
+  assert.deepEqual(reading, { chargedWh: 10, injectedWh: null, powerW: 0, sessionWh: null });
 });
 
 test("garbage meters parse to nulls", () => {
-  assert.deepEqual(parseMeters(null), { chargedWh: null, injectedWh: null, powerW: 0, sessionWh: null, plugged: null });
+  assert.deepEqual(parseMeters(null), { chargedWh: null, injectedWh: null, powerW: 0, sessionWh: null });
   assert.equal(describeMeters("nope"), "no meter");
 });
 
 test("describeMeters lists models and value names", () => {
   const text = describeMeters([{ Model: "TiC", Connected: "true", Values: [{ Name: "ApparentPower_VA", Value: 920 }] }]);
   assert.equal(text, "TiC (connected): ApparentPower_VA=920");
+});
+
+test("the car is read on the pilot, not on a cable left in the socket", () => {
+  const status = (CP, CableState) => ({ chargingmodule: { basic: { CP } }, custominfo: { ActiveSocket: "M3", M3: { CableState } } });
+  assert.equal(parseStatus(status("A1", "Plugged")).vehicleConnected, false); // cable in the borne, no car
+  assert.equal(parseStatus(status("B2", "Plugged")).vehicleConnected, true);
+  assert.equal(parseStatus(status("C2", "Plugged")).vehicleConnected, true);
+  assert.equal(parseStatus(status("F", "Plugged")).vehicleConnected, false); // error state
+  // no CP in the charging module: the socket's own state
+  assert.equal(parseStatus({ custominfo: { M3: { state: "B" } } }).vehicleConnected, true);
+  assert.deepEqual(parseStatus(null), { vehicleConnected: null, pilot: null, cableState: null, chargingState: null });
 });

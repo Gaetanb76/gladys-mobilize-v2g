@@ -123,3 +123,26 @@ test("persists and reloads; a damaged file is set aside", async () => {
   assert.ok((await fs.readdir(dir)).some((f) => f.startsWith("ledger.json.damaged-")));
   await fs.rm(dir, { recursive: true });
 });
+
+test("a version 1 record keeps its energies, drops its wrong hours", async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "v2g-"));
+  const file = path.join(dir, "ledger.json");
+  await fs.writeFile(
+    file,
+    JSON.stringify({
+      version: 1,
+      last: { at: "2026-10-27T08:00:00Z", chargedWh: 5000, injectedWh: 0, plugged: true },
+      days: { "2026-10-27": { chargedKwh: 0, injectedKwh: 0, v2gHours: 23.5 } },
+      officialHours: { "2026-09": 40 },
+    }),
+  );
+  const warnings = [];
+  const ledger = await loadLedger(file, { logger: { warn: (m) => warnings.push(m) } });
+  assert.equal(ledger.totals("2026-10-27").v2gHours, 0);
+  assert.equal(ledger.totals("2026-09").v2gHours, 40, "official hours are kept");
+  assert.equal(ledger.state.last.chargedWh, 5000);
+  assert.equal(ledger.state.last.plugged, null);
+  assert.equal(ledger.state.version, 2);
+  assert.equal(warnings.length, 1);
+  await fs.rm(dir, { recursive: true });
+});

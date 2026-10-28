@@ -24,9 +24,13 @@ const KEEP_DAYS = 1100; // about three years of history
 const emptyDay = () => ({ chargedKwh: 0, injectedKwh: 0, v2gHours: 0 });
 const finite = (v) => typeof v === "number" && Number.isFinite(v);
 
+// Version 2: the V2G hours read the socket's pilot. Version 1 read a meter
+// flag that stayed "plugged" with no car, so its hours are wrong.
+export const LEDGER_VERSION = 2;
+
 export function createLedger(initial = {}) {
   const state = {
-    version: 1,
+    version: LEDGER_VERSION,
     last: initial.last ?? null, // { at, chargedWh, injectedWh, plugged }
     days: initial.days ?? {},
     officialHours: initial.officialHours ?? {},
@@ -139,16 +143,26 @@ export async function loadLedger(file, { logger } = {}) {
     if (err.code !== "ENOENT") throw err;
     return createLedger();
   }
+  let data;
   try {
-    const data = JSON.parse(raw);
-    return createLedger(data?.version === 1 ? data : {});
+    data = JSON.parse(raw);
   } catch {
-    // keep the damaged file aside for a manual rescue rather than crashing on every start
-    const aside = `${file}.damaged-${Date.now()}`;
-    await fs.rename(file, aside);
-    logger?.error(`The V2G record was unreadable and was moved to ${aside}; starting a new one`);
-    return createLedger();
+    data = undefined;
   }
+  if (data?.version === LEDGER_VERSION) return createLedger(data);
+  if (data?.version === 1) {
+    // the energies stay; the estimated hours were counted with no car: drop them
+    // (official hours typed by the user are kept)
+    for (const d of Object.values(data.days ?? {})) d.v2gHours = 0;
+    if (data.last) data.last.plugged = null;
+    logger?.warn("V2G record updated: the estimated V2G hours counted before this version were wrong and are reset");
+    return createLedger(data);
+  }
+  // unreadable or unknown: keep the file aside for a manual rescue rather than crashing on every start
+  const aside = `${file}.damaged-${Date.now()}`;
+  await fs.rename(file, aside);
+  logger?.error(`The V2G record was unreadable and was moved to ${aside}; starting a new one`);
+  return createLedger();
 }
 
 /** Atomic write: a crash mid-write never leaves a truncated record. */

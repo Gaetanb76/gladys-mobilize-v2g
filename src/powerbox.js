@@ -6,6 +6,8 @@
 //                                               account printed on the borne)
 //   GET  /v1.0/meters  Bearer <id_token>     -> the borne's meters
 //   GET  /v1.0/configs Bearer <id_token>     -> the borne's configuration
+//   GET  /v1.0/status/chargingmodule, /v1.0/status/custominfo
+//                                            -> the pilot and the socket state
 //
 // The borne serves HTTPS with a self-signed certificate, so the certificate
 // is not checked (local network only). This client never writes anything to
@@ -104,6 +106,12 @@ export function createPowerboxClient({ host, username = "installer", password })
   return {
     readMeters: () => get("meters"),
     readConfigs: () => get("configs"),
+    /** The charging module and the sockets: { chargingmodule, custominfo }. */
+    async readStatus() {
+      const chargingmodule = await get("status/chargingmodule");
+      const custominfo = await get("status/custominfo");
+      return { chargingmodule, custominfo };
+    },
     forgetToken() {
       token = null;
     },
@@ -134,12 +142,10 @@ function meterMap(meters) {
 }
 
 /**
- * The values the integration uses. Energies in Wh (the borne gives W·s).
- *
- * "plugged" is the Connected flag of the session meter, which talks with the
- * car over the charging cable (PLC). It is the best candidate found so far
- * for "car plugged in"; to be confirmed on a real Verso (use the "Test the
- * connection" button of the integration to see the raw meters).
+ * The energies and the power. Energies in Wh (the borne gives W·s).
+ * The session meter says nothing reliable about the car being there: its
+ * Connected flag stays "true" with nothing plugged (seen on a real Verso),
+ * see parseStatus for that.
  */
 export function parseMeters(meters) {
   const map = meterMap(meters);
@@ -154,7 +160,32 @@ export function parseMeters(meters) {
     injectedWh: wh(board, "ActiveEnergyNegative_Ws"),
     powerW: session?.connected ? (session.values.get("ActivePower_W") ?? null) : 0,
     sessionWh: session?.connected ? wh(session, "SessionTotalEnergy_Ws") : null,
-    plugged: session ? session.connected : null,
+  };
+}
+
+// --- Status ----------------------------------------------------------------
+// /status/chargingmodule: { basic: { CP: "A"|"B"|"C"|"D"|…, … }, states: {…} }
+// /status/custominfo:     { ActiveSocket: "M3", M3: { state, CableState,
+//                           ChargingState, SocketLock, … }, … }
+// CP is the IEC 61851 control pilot of the Type 2 socket: A = no vehicle,
+// B = vehicle connected, C/D = vehicle connected and asking for energy;
+// E/F = error. A cable left in the borne's T2S socket is "Plugged" without
+// any car, so the car is read on the pilot only.
+// Field names from github.com/MisterMonk3y/ha-mobilize-powerbox v1.5.0.
+
+const PILOT_VEHICLE = new Set(["B", "C", "D"]);
+
+export function parseStatus(status) {
+  const basic = status?.chargingmodule?.basic ?? {};
+  const info = status?.custominfo ?? {};
+  const socket = info[info.ActiveSocket || "M3"] ?? {};
+  const pilot = typeof basic.CP === "string" ? basic.CP : typeof socket.state === "string" ? socket.state : null;
+  const letter = pilot ? pilot.trim().charAt(0).toUpperCase() : null;
+  return {
+    vehicleConnected: letter ? PILOT_VEHICLE.has(letter) : null,
+    pilot,
+    cableState: typeof socket.CableState === "string" ? socket.CableState : null,
+    chargingState: typeof socket.ChargingState === "string" ? socket.ChargingState : null,
   };
 }
 

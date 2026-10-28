@@ -8,7 +8,7 @@ import { DEVICE_FEATURE_CATEGORIES, DEVICE_FEATURE_TYPES, DEVICE_FEATURE_UNITS }
 import { readSettings } from "./settings.js";
 import { resolveTariffs } from "./tariffs.js";
 import { fetchMobilizeGrid } from "./mobilizeGrid.js";
-import { createPowerboxClient, parseMeters, describeMeters } from "./powerbox.js";
+import { createPowerboxClient, parseMeters, parseStatus, describeMeters } from "./powerbox.js";
 import { loadLedger, saveJson } from "./ledger.js";
 import { computeBalance } from "./balance.js";
 import { buildDiscoveredDevice, DEVICE_TYPE, PLATFORM_ID, PERIODS } from "./device.js";
@@ -110,6 +110,7 @@ export function createApp(gladys, { dataDir = "/data", now = () => new Date(), f
   // --- Polling ---------------------------------------------------------------
 
   let polling = false;
+  let statusWarned = false;
 
   async function pollOnce() {
     if (!client || polling) return; // a slow borne must not stack up reads
@@ -137,6 +138,16 @@ export function createApp(gladys, { dataDir = "/data", now = () => new Date(), f
       schedulePolling(); // back to the normal pace
     }
     consecutiveErrors = 0;
+    // The car is read on the socket's pilot. Without it (endpoint missing on
+    // another firmware, a blip), "plugged" is unknown and no V2G hour counts.
+    try {
+      reading.plugged = parseStatus(await client.readStatus()).vehicleConnected;
+      statusWarned = false;
+    } catch (err) {
+      reading.plugged = null;
+      if (!statusWarned) logger?.warn(`Powerbox socket state unavailable, V2G hours paused: ${err.message}`);
+      statusWarned = true;
+    }
     const { changed } = ledger.apply(reading, now(), {
       onReset: () => logger?.warn("A Powerbox energy counter went back: counting again from the new value"),
     });
@@ -275,8 +286,16 @@ export function createApp(gladys, { dataDir = "/data", now = () => new Date(), f
     try {
       const meters = await client.readMeters();
       const r = parseMeters(meters);
-      const head = `charged ${r.chargedWh === null ? "?" : round(r.chargedWh / 1000, 1)} kWh, sent back ${r.injectedWh === null ? "?" : round(r.injectedWh / 1000, 1)} kWh, plugged ${r.plugged ?? "?"}`;
-      return { en: `OK: ${head}. Meters: ${describeMeters(meters, 700)}`, fr: `OK : ${head}. Compteurs : ${describeMeters(meters, 700)}` };
+      const kwh = (wh) => (wh === null ? "?" : round(wh / 1000, 1));
+      let socket;
+      try {
+        const s = parseStatus(await client.readStatus());
+        socket = `pilot ${s.pilot ?? "?"}, cable ${s.cableState ?? "?"}, charging state ${s.chargingState ?? "?"}, vehicle ${s.vehicleConnected ?? "?"}`;
+      } catch (err) {
+        socket = `socket state unavailable (${err.message})`;
+      }
+      const head = `charged ${kwh(r.chargedWh)} kWh, sent back ${kwh(r.injectedWh)} kWh, power ${r.powerW ?? "?"} W; ${socket}`;
+      return { en: `OK: ${head}. Meters: ${describeMeters(meters, 600)}`, fr: `OK : ${head}. Compteurs : ${describeMeters(meters, 600)}` };
     } catch (err) {
       return { en: `Failed: ${err.message}`, fr: `Échec : ${err.message}` };
     }

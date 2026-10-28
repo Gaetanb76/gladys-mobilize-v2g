@@ -172,6 +172,10 @@
       "label": {
         "en": "Powerbox password (installer account)",
         "fr": "Mot de passe de la borne (compte installateur)"
+      },
+      "description": {
+        "en": "Hidden as you type it: after saving, the \"Test the connection to the Powerbox\" button says whether it is right.",
+        "fr": "Masqué pendant la saisie : après l'enregistrement, le bouton « Tester la connexion à la borne » indique s'il est bon."
       }
     },
     {
